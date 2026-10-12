@@ -368,15 +368,15 @@ Completed successfully.
 
 ### Quiz Feedback and AI Mini Chat
 
-![Quiz Feedback and AI Mini Chat](./public/screenshots/04-feedback-mini-chat.png)
+![Quiz Feedback and AI Mini Chat](./public/screenshots/04-feedback-mini-chat.jpg)
 
 ### AI Conversation Memory
 
-![AI Conversation Memory](./public/screenshots/05-assistant-memory.png)
+![AI Conversation Memory](./public/screenshots/05-assistant-memory.jpg)
 
 ### Quest Complete
 
-![Quest Complete](./public/screenshots/06-quest-complete.png)
+![Quest Complete](./public/screenshots/06-quest-complete.jpg)
 
 ## Future Development
 
