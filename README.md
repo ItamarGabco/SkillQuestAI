@@ -352,6 +352,32 @@ npm run lint
 
 Completed successfully.
 
+## Screenshots
+
+### Authentication
+
+![Authentication](./public/screenshots/01-auth.png)
+
+### AI Skill Recommendations
+
+![AI Skill Recommendations](./public/screenshots/02-skill-recommendations.png)
+
+### Quest
+
+![Quest](./public/screenshots/03-quest.png)
+
+### Quiz Feedback and AI Mini Chat
+
+![Quiz Feedback and AI Mini Chat](./public/screenshots/04-feedback-mini-chat.png)
+
+### AI Conversation Memory
+
+![AI Conversation Memory](./public/screenshots/05-assistant-memory.png)
+
+### Quest Complete
+
+![Quest Complete](./public/screenshots/06-quest-complete.png)
+
 ## Future Development
 
 Planned product improvements include:

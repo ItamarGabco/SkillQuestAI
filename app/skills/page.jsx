@@ -18,7 +18,31 @@ function getLevel(xp) {
   return Math.floor(xp / 100) + 1;
 }
 
+function getProficiencyColor(proficiency) {
+  if (proficiency === null) {
+    return "bg-zinc-600";
+  }
+
+  if (proficiency >= 75) {
+    return "bg-green-500";
+  }
+
+  if (proficiency >= 50) {
+    return "bg-yellow-500";
+  }
+
+  if (proficiency >= 25) {
+    return "bg-orange-500";
+  }
+
+  return "bg-red-500";
+}
+
 function getProficiencyLabel(proficiency) {
+  if (proficiency === null) {
+    return "טרם נבדק";
+  }
+
   if (proficiency >= 75) {
     return "חזק";
   }

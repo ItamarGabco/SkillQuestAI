@@ -2,6 +2,7 @@
 
 import { getSkillRecommendationsAction } from "@/actions/ai";
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { generateQuizBatchAction } from "@/actions/quiz";
 import {
   startQuestAttemptAction,
@@ -89,6 +90,8 @@ export default function SkillCategoryPicker() {
   const pendingSavePromisesRef = useRef([]);
 
   // STATES END
+
+  const router = useRouter();
 
   function handleBackToQuestBoard() {
     setSelectedSkill(null);
@@ -291,6 +294,7 @@ export default function SkillCategoryPicker() {
         }
 
         setQuestFinished(true);
+        router.refresh();
       } catch (error) {
         console.error("Quest completion failed:", error);
 
@@ -370,6 +374,31 @@ export default function SkillCategoryPicker() {
     } finally {
       setQuizLoading(false);
     }
+  }
+
+  function handleBackToTopics() {
+    setSelectedCategory(null);
+    setShowCategories(true);
+    setRecommendations([]);
+
+    setSelectedSkill(null);
+    setCurrentQuestion(null);
+    setQuizQuestions([]);
+
+    setSelectedAnswer(null);
+    setHasAnswered(false);
+
+    setQuestionNumber(1);
+    setQuestResults([]);
+    setQuestFinished(false);
+
+    setQuizError("");
+    setQuizLoading(false);
+
+    setQuestAttemptId(null);
+
+    prefetchBatchRef.current = null;
+    pendingSavePromisesRef.current = [];
   }
 
   return (
@@ -545,7 +574,7 @@ export default function SkillCategoryPicker() {
             <div className="mt-8 text-center">
               <button
                 type="button"
-                onClick={() => setShowCategories((current) => !current)}
+                onClick={handleBackToTopics}
                 className="text-sm font-semibold text-zinc-500 transition hover:text-orange-400"
               >
                 {showCategories

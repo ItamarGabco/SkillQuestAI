@@ -6,6 +6,7 @@ import connectDB from "@/lib/db";
 import { getSessionUserId } from "@/lib/session";
 import QuestAttempt from "@/models/QuestAttempt";
 import Skill from "@/models/Skill";
+import { revalidatePath } from "next/cache";
 
 const ALLOWED_DIFFICULTIES = ["beginner", "intermediate", "advanced"];
 
@@ -48,6 +49,11 @@ export async function startQuestAttemptAction({
         userId,
         name: cleanSkillName,
         category: cleanCategory,
+        firstPracticedAt: new Date(),
+      },
+
+      $inc: {
+        totalQuests: 1,
       },
 
       $set: {
@@ -229,6 +235,7 @@ export async function completeQuestAttemptAction(attemptId) {
     {
       $inc: {
         xp: completionBonus,
+        completeQuests: 1,
       },
 
       $set: {
@@ -236,6 +243,7 @@ export async function completeQuestAttemptAction(attemptId) {
       },
     },
   );
+  revalidatePath("skills");
 
   return {
     success: true,
