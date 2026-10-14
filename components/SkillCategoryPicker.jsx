@@ -242,7 +242,7 @@ export default function SkillCategoryPicker({ initialSkill = null, initialTopics
     } catch (error) {
       console.error("Failed to start quest:", error);
 
-      setQuizError("לא הצלחנו להתחיל את ה-Quest כרגע");
+      setQuizError("לא הצלחנו להתחיל את המשימה כרגע");
     } finally {
       setQuizLoading(false);
     }
@@ -345,7 +345,7 @@ export default function SkillCategoryPicker({ initialSkill = null, initialTopics
       } catch (error) {
         console.error("Quest completion failed:", error);
 
-        setQuizError("לא הצלחנו לשמור את סיום ה-Quest");
+        setQuizError("לא הצלחנו לשמור את סיום המשימה");
       } finally {
         setQuizLoading(false);
       }
@@ -491,6 +491,13 @@ export default function SkillCategoryPicker({ initialSkill = null, initialTopics
           <p className="font-bold text-red-400">⚠️ המשימה נכשלה</p>
 
           <p className="mt-2 text-sm text-zinc-300">{error}</p>
+          <button
+            type="button"
+            onClick={handleBackToTopics}
+            className="mt-4 rounded-xl border border-white/20 px-4 py-2 font-semibold text-white hover:border-orange-500"
+          >
+            חזרה לבחירת נושא
+          </button>
         </div>
       )}
 
