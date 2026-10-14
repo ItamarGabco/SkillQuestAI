@@ -30,6 +30,7 @@ export default async function PlayPage({ searchParams }) {
         : null;
       initialSkill = {
         name: skill.name,
+        displayName: skill.displayName || skill.name,
         category: skill.category,
         shortDescription: "תרגול נוסף לחיזוק הידע וההתקדמות שלך.",
         difficulty: "beginner",
