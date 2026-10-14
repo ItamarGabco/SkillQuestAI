@@ -219,6 +219,7 @@ export default function SkillCategoryPicker({ initialSkill = null, initialTopics
 
       const attemptResult = await startQuestAttemptAction({
         skillName: selectedSkill.name,
+        displayName: selectedSkill.displayName || selectedSkill.name,
 
         difficulty: selectedSkill.difficulty,
 
@@ -574,7 +575,7 @@ export default function SkillCategoryPicker({ initialSkill = null, initialTopics
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-xl font-bold">{skill.name}</h3>
+                        <h3 className="text-xl font-bold">{skill.displayName || skill.name}</h3>
 
                         {skill.isExisting ? (
                           <span className="rounded-full bg-orange-500/10 px-2 py-1 text-xs font-bold text-orange-400">
@@ -667,7 +668,7 @@ export default function SkillCategoryPicker({ initialSkill = null, initialTopics
             <div>
               <p className="font-bold text-orange-400">⚔️ המשימה מוכנה</p>
 
-              <h2 className="mt-2 text-3xl font-bold">{selectedSkill.name}</h2>
+              <h2 className="mt-2 text-3xl font-bold">{selectedSkill.displayName || selectedSkill.name}</h2>
 
               <p className="mt-2 max-w-xl text-zinc-400">
                 {selectedSkill.shortDescription}
@@ -815,7 +816,7 @@ export default function SkillCategoryPicker({ initialSkill = null, initialTopics
                     </p>
 
                     <MiniChat
-                      skillName={selectedSkill.name}
+                      skillName={selectedSkill.displayName || selectedSkill.name}
                       concept={currentQuestion.concept}
                     />
 
@@ -843,7 +844,7 @@ export default function SkillCategoryPicker({ initialSkill = null, initialTopics
 
               <p className="mt-3 font-bold text-orange-400">המסע הושלם</p>
 
-              <h3 className="mt-2 text-2xl font-bold">{selectedSkill.name}</h3>
+              <h3 className="mt-2 text-2xl font-bold">{selectedSkill.displayName || selectedSkill.name}</h3>
 
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <div className="rounded-xl bg-white/5 p-4">
