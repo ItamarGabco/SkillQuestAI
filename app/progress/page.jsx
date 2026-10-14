@@ -11,10 +11,11 @@ export default async function ProgressPage() {
   if (!userId) redirect("/login");
 
   await connectDB();
-  const [skills, attempts] = await Promise.all([
+  const [skills, attempts, completedCount] = await Promise.all([
     Skill.find({ userId }).lean(),
     QuestAttempt.find({ userId, status: "completed" })
       .sort({ completedAt: -1 }).limit(12).lean(),
+    QuestAttempt.countDocuments({ userId, status: "completed" }),
   ]);
 
   const totalXp = skills.reduce((sum, skill) => sum + (skill.xp || 0), 0);
@@ -33,7 +34,7 @@ export default async function ProgressPage() {
         <section aria-label="נתוני למידה" className="mt-8 grid gap-4 sm:grid-cols-3">
           {[
             { title: "ניסיון שצברת", value: totalXp.toLocaleString("he-IL"), suffix: "XP" },
-            { title: "משחקים שהושלמו", value: String(attempts.length) + (attempts.length === 12 ? "+" : ""), suffix: "" },
+            { title: "משחקים שהושלמו", value: String(completedCount), suffix: "" },
             { title: "תשובות נכונות", value: accuracy === null ? "—" : accuracy + "%", suffix: "" },
           ].map((stat) => (
             <div key={stat.title} className="rounded-2xl border border-white/10 bg-zinc-900 p-6">
