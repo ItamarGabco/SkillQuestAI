@@ -8,7 +8,7 @@ import Skill from "@/models/Skill";
 
 function calculateProficiency(skill) {
   if (skill.totalAnswers === 0) {
-    return 0;
+    return null;
   }
 
   return Math.round((skill.correctAnswers / skill.totalAnswers) * 100);
@@ -119,7 +119,7 @@ export default async function SkillsPage() {
                   <Link
                     key={skill._id.toString()}
                     href={`/play?skillId=${skill._id.toString()}`}
-                    aria-label={`המשך מסע בסקיל ${skill.name} — שאלות נוספות לחיזוק הידע`}
+                    aria-label={`המשך מסע בסקיל ${skill.displayName || skill.name} — שאלות נוספות לחיזוק הידע`}
                     className="group relative block rounded-2xl border border-white/10 bg-zinc-900 p-5 pb-16 transition hover:border-orange-500/60 hover:bg-zinc-800 focus-visible:border-orange-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -129,7 +129,7 @@ export default async function SkillsPage() {
                         </p>
 
                         <h3 className="mt-1 text-2xl font-bold">
-                          {skill.name}
+                          {skill.displayName || skill.name}
                         </h3>
                       </div>
 
@@ -143,7 +143,7 @@ export default async function SkillsPage() {
                         <span className="text-zinc-400">שליטה</span>
 
                         <span className="font-bold">
-                          {proficiency}% · {getProficiencyLabel(proficiency)}
+                          {proficiency === null ? "טרם נבדק" : `${proficiency}% · ${proficiencyLabel}`}
                         </span>
                       </div>
 
@@ -151,7 +151,7 @@ export default async function SkillsPage() {
                         <div
                           className={`h-full rounded-full ${proficiencyColor}`}
                           style={{
-                            width: `${proficiency}%`,
+                            width: `${proficiency ?? 0}%`,
                           }}
                         />
                       </div>
