@@ -15,7 +15,7 @@ export async function addUserTopicAction(rawName) {
     return { error: "יש להתחבר כדי לשמור נושא אישי" };
   }
 
-  const name = String(rawName ?? "").trim().replace(/\\s+/g, " ");
+  const name = String(rawName ?? "").trim().replace(/\s+/g, " ");
   if (name.length < 2 || name.length > 60) {
     return { error: "שם הנושא חייב להכיל בין 2 ל־60 תווים" };
   }
