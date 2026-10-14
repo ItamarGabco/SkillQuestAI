@@ -87,6 +87,13 @@ const skillSchema = new mongoose.Schema(
       default: "כללי",
     },
 
+    displayName: {
+      type: String,
+      trim: true,
+      maxLength: 80,
+      default: "",
+    },
+
     xp: {
       type: Number,
       default: 0,

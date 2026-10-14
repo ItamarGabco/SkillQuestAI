@@ -91,7 +91,7 @@ export default function MiniChat({ skillName, concept = "" }) {
     <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4 text-zinc-100">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="font-bold text-orange-400">💬 AI Mentor</p>
+          <p className="font-bold text-orange-400">💬 מאמן AI</p>
 
           <p className="text-xs text-zinc-500">{concept || skillName}</p>
         </div>

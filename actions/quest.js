@@ -12,6 +12,7 @@ const ALLOWED_DIFFICULTIES = ["beginner", "intermediate", "advanced"];
 
 export async function startQuestAttemptAction({
   skillName,
+  displayName = "",
   difficulty,
   category = "כללי",
 }) {
@@ -26,6 +27,7 @@ export async function startQuestAttemptAction({
   const cleanSkillName = String(skillName || "").trim();
 
   const cleanCategory = String(category || "כללי").trim();
+  const cleanDisplayName = String(displayName || "").trim().slice(0, 80);
 
   if (!cleanSkillName) {
     return {
@@ -58,6 +60,7 @@ export async function startQuestAttemptAction({
 
       $set: {
         lastPracticedAt: new Date(),
+        ...(cleanDisplayName ? { displayName: cleanDisplayName } : {}),
       },
     },
     {
@@ -235,7 +238,7 @@ export async function completeQuestAttemptAction(attemptId) {
     {
       $inc: {
         xp: completionBonus,
-        completeQuests: 1,
+        completedQuests: 1,
       },
 
       $set: {
@@ -243,7 +246,7 @@ export async function completeQuestAttemptAction(attemptId) {
       },
     },
   );
-  revalidatePath("skills");
+  revalidatePath("/skills");
 
   return {
     success: true,

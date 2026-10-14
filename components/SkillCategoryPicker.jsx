@@ -1,5 +1,9 @@
 "use client";
 
+import QuestResults from "@/components/quest/QuestResults";
+import QuizQuestion from "@/components/quest/QuizQuestion";
+import SkillRecommendations from "@/components/quest/SkillRecommendations";
+import TopicSelector from "@/components/quest/TopicSelector";
 import { getSkillRecommendationsAction } from "@/actions/ai";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -9,7 +13,7 @@ import {
   recordQuestAnswerAction,
   completeQuestAttemptAction,
 } from "@/actions/quest";
-import MiniChat from "@/components/MiniChat";
+import { addUserTopicAction } from "@/actions/topics";
 
 const TOTAL_QUESTIONS = 10;
 
@@ -52,8 +56,13 @@ const categories = [
   },
 ];
 
-export default function SkillCategoryPicker() {
+export default function SkillCategoryPicker({ initialSkill = null, initialTopics = [] }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategoryName, setSelectedCategoryName] = useState(initialSkill?.category || null);
+  const [customTopics, setCustomTopics] = useState(initialTopics);
+  const [customTopicName, setCustomTopicName] = useState("");
+  const [topicError, setTopicError] = useState("");
+  const [savingTopic, setSavingTopic] = useState(false);
 
   const [recommendations, setRecommendations] = useState([]);
 
@@ -61,9 +70,9 @@ export default function SkillCategoryPicker() {
 
   const [error, setError] = useState("");
 
-  const [showCategories, setShowCategories] = useState(true);
+  const [showCategories, setShowCategories] = useState(!initialSkill);
 
-  const [selectedSkill, setSelectedSkill] = useState(null);
+  const [selectedSkill, setSelectedSkill] = useState(initialSkill);
 
   const [currentQuestion, setCurrentQuestion] = useState(null);
 
@@ -89,7 +98,40 @@ export default function SkillCategoryPicker() {
 
   const pendingSavePromisesRef = useRef([]);
 
-  // STATES END
+  const allCategories = [
+    ...categories,
+    ...customTopics.map((topic) => ({
+      id: `custom:${topic.id}`,
+      name: topic.name,
+      icon: "✨",
+      description: "נושא אישי ששמרת",
+    })),
+  ];
+
+  async function handleAddCustomTopic(event) {
+    event.preventDefault();
+    setTopicError("");
+    const name = customTopicName.trim().replace(/\s+/g, " ");
+    if (!name) {
+      setTopicError("כדאי להזין שם לנושא החדש");
+      return;
+    }
+    setSavingTopic(true);
+    try {
+      const result = await addUserTopicAction(name);
+      if (result.error) {
+        setTopicError(result.error);
+        return;
+      }
+      setCustomTopics((current) => [result.topic, ...current]);
+      setCustomTopicName("");
+    } catch (error) {
+      console.error("Failed to create topic:", error);
+      setTopicError("שמירת הנושא נכשלה. אפשר לנסות שוב.");
+    } finally {
+      setSavingTopic(false);
+    }
+  }
 
   const router = useRouter();
 
@@ -105,6 +147,11 @@ export default function SkillCategoryPicker() {
     setQuizError("");
     setQuizLoading(false);
     setQuestAttemptId(null);
+    if (recommendations.length === 0) {
+      setShowCategories(true);
+      setSelectedCategory(null);
+      setSelectedCategoryName(null);
+    }
 
     pendingSavePromisesRef.current = [];
 
@@ -113,6 +160,7 @@ export default function SkillCategoryPicker() {
 
   async function handleCategorySelect(category) {
     setSelectedCategory(category.id);
+    setSelectedCategoryName(category.name);
     setShowCategories(false);
     setLoading(true);
     setError("");
@@ -170,12 +218,11 @@ export default function SkillCategoryPicker() {
         return;
       }
 
-      const categoryName =
-        categories.find((category) => category.id === selectedCategory)?.name ||
-        "כללי";
+      const categoryName = selectedCategoryName || selectedSkill.category || "כללי";
 
       const attemptResult = await startQuestAttemptAction({
         skillName: selectedSkill.name,
+        displayName: selectedSkill.displayName || selectedSkill.name,
 
         difficulty: selectedSkill.difficulty,
 
@@ -195,7 +242,7 @@ export default function SkillCategoryPicker() {
     } catch (error) {
       console.error("Failed to start quest:", error);
 
-      setQuizError("לא הצלחנו להתחיל את ה-Quest כרגע");
+      setQuizError("לא הצלחנו להתחיל את המשימה כרגע");
     } finally {
       setQuizLoading(false);
     }
@@ -298,7 +345,7 @@ export default function SkillCategoryPicker() {
       } catch (error) {
         console.error("Quest completion failed:", error);
 
-        setQuizError("לא הצלחנו לשמור את סיום ה-Quest");
+        setQuizError("לא הצלחנו לשמור את סיום המשימה");
       } finally {
         setQuizLoading(false);
       }
@@ -378,6 +425,7 @@ export default function SkillCategoryPicker() {
 
   function handleBackToTopics() {
     setSelectedCategory(null);
+    setSelectedCategoryName(null);
     setShowCategories(true);
     setRecommendations([]);
 
@@ -409,44 +457,21 @@ export default function SkillCategoryPicker() {
         <p className="mt-2 text-zinc-400">בחר תחום ונציע לך סקילס רלוונטיים.</p>
       </div>
 
-      {showCategories && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => {
-            const isSelected = selectedCategory === category.id;
-
-            return (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => handleCategorySelect(category)}
-                className={`rounded-2xl border p-5 text-right transition ${
-                  isSelected
-                    ? "border-orange-500 bg-orange-500/10"
-                    : "border-white/10 bg-zinc-900 hover:border-white/20"
-                }`}
-              >
-                <div className="text-3xl">{category.icon}</div>
-
-                <h3 className="mt-4 text-xl font-bold">{category.name}</h3>
-
-                <p className="mt-2 text-sm text-zinc-400">
-                  {category.description}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {selectedCategory && (
-        <p className="mt-5 text-sm text-orange-400">
-          התחום נבחר. בשלב הבא ה־AI יציע לך סקילס מתאימים.
-        </p>
-      )}
+      <TopicSelector
+        showCategories={showCategories}
+        allCategories={allCategories}
+        selectedCategory={selectedCategory}
+        onSelectCategory={handleCategorySelect}
+        customTopicName={customTopicName}
+        setCustomTopicName={setCustomTopicName}
+        handleAddCustomTopic={handleAddCustomTopic}
+        savingTopic={savingTopic}
+        topicError={topicError}
+      />
 
       {loading && (
         <div className="mt-8 rounded-2xl border border-orange-500/30 bg-orange-500/5 p-6">
-          <p className="font-bold text-orange-400">⚡ AI SCOUT</p>
+          <p className="font-bold text-orange-400">⚡ סייר ה־AI</p>
 
           <p className="mt-2 text-lg font-semibold">
             ממפה את המסלול הבא שלך...
@@ -466,133 +491,33 @@ export default function SkillCategoryPicker() {
           <p className="font-bold text-red-400">⚠️ המשימה נכשלה</p>
 
           <p className="mt-2 text-sm text-zinc-300">{error}</p>
+          <button
+            type="button"
+            onClick={handleBackToTopics}
+            className="mt-4 rounded-xl border border-white/20 px-4 py-2 font-semibold text-white hover:border-orange-500"
+          >
+            חזרה לבחירת נושא
+          </button>
         </div>
       )}
 
-      {!loading && recommendations.length > 0 && !selectedSkill && (
-        <div className="mt-10">
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div>
-              <p className="font-bold text-orange-400">⚔️ QUEST BOARD</p>
-
-              <h2 className="mt-1 text-2xl font-bold">מסלולים מומלצים עבורך</h2>
-            </div>
-
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-zinc-400">
-              {recommendations.length} משימות
-            </span>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {recommendations.map((skill) => {
-              const difficultyLabel = {
-                beginner: "מתחיל",
-                intermediate: "בינוני",
-                advanced: "מתקדם",
-              }[skill.difficulty];
-
-              return (
-                <article
-                  key={skill.name}
-                  className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 p-5 transition hover:border-orange-500/40"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-xl font-bold">{skill.name}</h3>
-
-                        {skill.isExisting ? (
-                          <span className="rounded-full bg-orange-500/10 px-2 py-1 text-xs font-bold text-orange-400">
-                            🔥 חיזוק
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-green-500/10 px-2 py-1 text-xs font-bold text-green-400">
-                            ✨ חדש
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="mt-2 text-sm text-zinc-400">
-                        {skill.shortDescription}
-                      </p>
-                    </div>
-
-                    <span className="shrink-0 rounded-lg bg-white/5 px-3 py-2 text-xs font-semibold text-zinc-300">
-                      {difficultyLabel}
-                    </span>
-                  </div>
-
-                  <div className="mt-5 rounded-xl bg-white/5 p-4">
-                    <p className="text-xs font-bold text-zinc-500">
-                      למה זה מומלץ לך?
-                    </p>
-
-                    <p className="mt-1 text-sm text-zinc-300">{skill.reason}</p>
-                  </div>
-
-                  {skill.isExisting && (
-                    <div className="mt-5">
-                      <div className="mb-2 flex items-center justify-between text-sm">
-                        <span className="text-zinc-400">שליטה נוכחית</span>
-
-                        <span className="font-bold">
-                          {skill.proficiency === null
-                            ? "טרם נבדק"
-                            : `${skill.proficiency}%`}
-                        </span>
-                      </div>
-
-                      {skill.proficiency !== null && (
-                        <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                          <div
-                            className="h-full rounded-full bg-orange-500"
-                            style={{
-                              width: `${skill.proficiency}%`,
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      <p className="mt-2 text-xs text-zinc-500">
-                        Level {skill.level}
-                      </p>
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSkill(skill)}
-                    className="mt-5 w-full rounded-xl bg-orange-500 px-4 py-3 font-bold text-black transition hover:bg-orange-400"
-                  >
-                    ⚔️ בחר Quest
-                  </button>
-                </article>
-              );
-            })}
-          </div>
-          {selectedCategory && (
-            <div className="mt-8 text-center">
-              <button
-                type="button"
-                onClick={handleBackToTopics}
-                className="text-sm font-semibold text-zinc-500 transition hover:text-orange-400"
-              >
-                {showCategories
-                  ? "סגור בחירת תחום"
-                  : "＋ רוצה מסלול אחר? בחר תחום"}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      <SkillRecommendations
+        loading={loading}
+        recommendations={recommendations}
+        selectedSkill={selectedSkill}
+        selectedCategory={selectedCategory}
+        showCategories={showCategories}
+        onSelectSkill={setSelectedSkill}
+        handleBackToTopics={handleBackToTopics}
+      />
 
       {selectedSkill && (
         <div className="mt-10 rounded-3xl border border-orange-500/30 bg-zinc-900 p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="font-bold text-orange-400">⚔️ QUEST READY</p>
+              <p className="font-bold text-orange-400">⚔️ המשימה מוכנה</p>
 
-              <h2 className="mt-2 text-3xl font-bold">{selectedSkill.name}</h2>
+              <h2 className="mt-2 text-3xl font-bold">{selectedSkill.displayName || selectedSkill.name}</h2>
 
               <p className="mt-2 max-w-xl text-zinc-400">
                 {selectedSkill.shortDescription}
@@ -603,7 +528,7 @@ export default function SkillCategoryPicker() {
               <div className="rounded-xl bg-white/5 px-4 py-3 text-center">
                 <p className="text-xs text-zinc-500">הרמה שלך</p>
 
-                <p className="mt-1 font-bold">Level {selectedSkill.level}</p>
+                <p className="mt-1 font-bold">רמה {selectedSkill.level}</p>
               </div>
             )}
           </div>
@@ -636,159 +561,32 @@ export default function SkillCategoryPicker() {
               disabled={quizLoading}
               className="mt-6 w-full rounded-xl bg-orange-500 px-4 py-4 text-lg font-bold text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {quizLoading ? "⚡ יוצר את האתגר..." : "⚔️ התחל Quest"}
+              {quizLoading ? "⚡ יוצר את האתגר..." : "⚔️ התחל משימה"}
             </button>
           )}
 
-          {currentQuestion && !questFinished && (
-            <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5">
-              <div className="mb-5 flex items-center justify-between gap-4">
-                <div className="w-full">
-                  <div className="mb-5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-bold text-orange-400">
-                        ⚔️ שאלה {questionNumber}/{TOTAL_QUESTIONS}
-                      </span>
+          <QuizQuestion
+            currentQuestion={currentQuestion}
+            questFinished={questFinished}
+            questionNumber={questionNumber}
+            totalQuestions={TOTAL_QUESTIONS}
+            earnedXp={earnedXp}
+            selectedAnswer={selectedAnswer}
+            hasAnswered={hasAnswered}
+            setSelectedAnswer={setSelectedAnswer}
+            handleCheckAnswer={handleCheckAnswer}
+            selectedSkill={selectedSkill}
+            handleNextQuestion={handleNextQuestion}
+            quizLoading={quizLoading}
+          />
 
-                      <span className="font-bold text-yellow-400">
-                        ⚡ {earnedXp} XP
-                      </span>
-                    </div>
-
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full bg-orange-500 transition-all"
-                        style={{
-                          width: `${(questionNumber / TOTAL_QUESTIONS) * 100}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <p className="text-xs font-bold text-orange-400">
-                    🎯 {currentQuestion.concept}
-                  </p>
-
-                  <h3 className="mt-2 text-xl font-bold">
-                    {currentQuestion.question}
-                  </h3>
-                </div>
-              </div>
-
-              <div className="grid gap-3">
-                {currentQuestion.options.map((option, index) => {
-                  const isSelected = selectedAnswer === index;
-
-                  const isCorrect = index === currentQuestion.correctIndex;
-
-                  let answerStyle = "border-white/10 bg-white/5";
-
-                  if (!hasAnswered && isSelected) {
-                    answerStyle = "border-orange-500 bg-orange-500/10";
-                  }
-
-                  if (hasAnswered && isCorrect) {
-                    answerStyle = "border-green-500 bg-green-500/10";
-                  }
-
-                  if (hasAnswered && isSelected && !isCorrect) {
-                    answerStyle = "border-red-500 bg-red-500/10";
-                  }
-
-                  return (
-                    <button
-                      key={index}
-                      type="button"
-                      disabled={hasAnswered}
-                      onClick={() => setSelectedAnswer(index)}
-                      className={`rounded-xl border p-4 text-right transition ${answerStyle}`}
-                    >
-                      {option}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {!hasAnswered && (
-                <button
-                  type="button"
-                  disabled={selectedAnswer === null}
-                  onClick={() => handleCheckAnswer()}
-                  className="mt-5 w-full rounded-xl bg-orange-500 px-4 py-3 font-bold text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  בדוק תשובה
-                </button>
-              )}
-
-              {hasAnswered && (
-                <div className="mt-5">
-                  <div
-                    className={`rounded-xl p-4 ${
-                      selectedAnswer === currentQuestion.correctIndex
-                        ? "bg-green-500/10"
-                        : "bg-red-500/10"
-                    }`}
-                  >
-                    <p className="text-lg font-bold">
-                      {selectedAnswer === currentQuestion.correctIndex
-                        ? "✅ נכון!"
-                        : "❌ לא הפעם"}
-                    </p>
-
-                    <p className="mt-2 text-sm text-zinc-300">
-                      {currentQuestion.explanation}
-                    </p>
-
-                    <MiniChat
-                      skillName={selectedSkill.name}
-                      concept={currentQuestion.concept}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={handleNextQuestion}
-                      disabled={quizLoading}
-                      className="mt-5 w-full rounded-xl bg-orange-500 px-4 py-3 font-bold text-black transition hover:bg-orange-400 disabled:opacity-50"
-                    >
-                      {quizLoading
-                        ? "⚡ מכין את האתגר הבא..."
-                        : questionNumber === TOTAL_QUESTIONS
-                          ? "🏆 סיים Quest"
-                          : "שאלה הבאה ←"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {questFinished && (
-            <div className="mt-6 rounded-2xl border border-orange-500/30 bg-orange-500/5 p-6 text-center">
-              <p className="text-4xl">🏆</p>
-
-              <p className="mt-3 font-bold text-orange-400">QUEST COMPLETE</p>
-
-              <h3 className="mt-2 text-2xl font-bold">{selectedSkill.name}</h3>
-
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-white/5 p-4">
-                  <p className="text-2xl font-bold">
-                    {correctCount}/{TOTAL_QUESTIONS}
-                  </p>
-
-                  <p className="mt-1 text-sm text-zinc-400">תשובות נכונות</p>
-                </div>
-
-                <div className="rounded-xl bg-white/5 p-4">
-                  <p className="text-2xl font-bold text-yellow-400">
-                    +{earnedXp}
-                  </p>
-
-                  <p className="mt-1 text-sm text-zinc-400">XP</p>
-                </div>
-              </div>
-            </div>
-          )}
+          <QuestResults
+            questFinished={questFinished}
+            selectedSkill={selectedSkill}
+            correctCount={correctCount}
+            totalQuestions={TOTAL_QUESTIONS}
+            earnedXp={earnedXp}
+          />
 
           {quizError && (
             <p className="mt-4 text-sm text-red-400">{quizError}</p>
@@ -799,7 +597,7 @@ export default function SkillCategoryPicker() {
             onClick={() => handleBackToQuestBoard()}
             className="mt-6 text-sm font-semibold text-zinc-500 transition hover:text-orange-400"
           >
-            ← בחר Quest אחר
+            ← בחר משימה אחרת
           </button>
         </div>
       )}

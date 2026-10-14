@@ -52,11 +52,12 @@ export async function getSkillRecommendationsAction(topic) {
   await connectDB();
 
   const existingSkills = await Skill.find({ userId })
-    .select("name xp correctAnswers totalAnswers -_id")
+    .select("name displayName xp correctAnswers totalAnswers -_id")
     .lean();
 
   const userSkillContext = existingSkills.map((skill) => ({
     name: skill.name,
+    displayName: skill.displayName || skill.name,
 
     proficiency: calculateProficiency(skill),
 
