@@ -10,6 +10,7 @@ import {
   completeQuestAttemptAction,
 } from "@/actions/quest";
 import MiniChat from "@/components/MiniChat";
+import { addUserTopicAction } from "@/actions/topics";
 
 const TOTAL_QUESTIONS = 10;
 
@@ -52,8 +53,13 @@ const categories = [
   },
 ];
 
-export default function SkillCategoryPicker() {
+export default function SkillCategoryPicker({ initialSkill = null, initialTopics = [] }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategoryName, setSelectedCategoryName] = useState(initialSkill?.category || null);
+  const [customTopics, setCustomTopics] = useState(initialTopics);
+  const [customTopicName, setCustomTopicName] = useState("");
+  const [topicError, setTopicError] = useState("");
+  const [savingTopic, setSavingTopic] = useState(false);
 
   const [recommendations, setRecommendations] = useState([]);
 
@@ -61,9 +67,9 @@ export default function SkillCategoryPicker() {
 
   const [error, setError] = useState("");
 
-  const [showCategories, setShowCategories] = useState(true);
+  const [showCategories, setShowCategories] = useState(!initialSkill);
 
-  const [selectedSkill, setSelectedSkill] = useState(null);
+  const [selectedSkill, setSelectedSkill] = useState(initialSkill);
 
   const [currentQuestion, setCurrentQuestion] = useState(null);
 
@@ -89,7 +95,40 @@ export default function SkillCategoryPicker() {
 
   const pendingSavePromisesRef = useRef([]);
 
-  // STATES END
+  const allCategories = [
+    ...categories,
+    ...customTopics.map((topic) => ({
+      id: `custom:${topic.id}`,
+      name: topic.name,
+      icon: "✨",
+      description: "נושא אישי ששמרת",
+    })),
+  ];
+
+  async function handleAddCustomTopic(event) {
+    event.preventDefault();
+    setTopicError("");
+    const name = customTopicName.trim().replace(/\s+/g, " ");
+    if (!name) {
+      setTopicError("כדאי להזין שם לנושא החדש");
+      return;
+    }
+    setSavingTopic(true);
+    try {
+      const result = await addUserTopicAction(name);
+      if (result.error) {
+        setTopicError(result.error);
+        return;
+      }
+      setCustomTopics((current) => [result.topic, ...current]);
+      setCustomTopicName("");
+    } catch (error) {
+      console.error("Failed to create topic:", error);
+      setTopicError("שמירת הנושא נכשלה. אפשר לנסות שוב.");
+    } finally {
+      setSavingTopic(false);
+    }
+  }
 
   const router = useRouter();
 
@@ -105,6 +144,11 @@ export default function SkillCategoryPicker() {
     setQuizError("");
     setQuizLoading(false);
     setQuestAttemptId(null);
+    if (recommendations.length === 0) {
+      setShowCategories(true);
+      setSelectedCategory(null);
+      setSelectedCategoryName(null);
+    }
 
     pendingSavePromisesRef.current = [];
 
@@ -113,6 +157,7 @@ export default function SkillCategoryPicker() {
 
   async function handleCategorySelect(category) {
     setSelectedCategory(category.id);
+    setSelectedCategoryName(category.name);
     setShowCategories(false);
     setLoading(true);
     setError("");
@@ -170,9 +215,7 @@ export default function SkillCategoryPicker() {
         return;
       }
 
-      const categoryName =
-        categories.find((category) => category.id === selectedCategory)?.name ||
-        "כללי";
+      const categoryName = selectedCategoryName || selectedSkill.category || "כללי";
 
       const attemptResult = await startQuestAttemptAction({
         skillName: selectedSkill.name,
@@ -378,6 +421,7 @@ export default function SkillCategoryPicker() {
 
   function handleBackToTopics() {
     setSelectedCategory(null);
+    setSelectedCategoryName(null);
     setShowCategories(true);
     setRecommendations([]);
 
@@ -411,7 +455,7 @@ export default function SkillCategoryPicker() {
 
       {showCategories && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => {
+          {allCategories.map((category) => {
             const isSelected = selectedCategory === category.id;
 
             return (
@@ -438,6 +482,37 @@ export default function SkillCategoryPicker() {
         </div>
       )}
 
+      {showCategories && (
+        <form onSubmit={handleAddCustomTopic} className="mt-5 rounded-2xl border border-dashed border-orange-500/35 bg-orange-500/5 p-5">
+          <label htmlFor="custom-topic" className="block text-lg font-bold">
+            לא מצאת את התחום שלך? הוסף נושא אישי
+          </label>
+          <p className="mt-1 text-sm text-zinc-400">
+            הנושא יישמר בחשבון שלך ויופיע כאן בכל כניסה.
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <input
+              id="custom-topic"
+              type="text"
+              value={customTopicName}
+              onChange={(event) => setCustomTopicName(event.target.value)}
+              maxLength={60}
+              placeholder="למשל: צילום, גינון או אסטרונומיה"
+              className="min-w-0 flex-1 rounded-xl border border-white/15 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-orange-500"
+              required
+            />
+            <button
+              type="submit"
+              disabled={savingTopic}
+              className="rounded-xl bg-orange-500 px-5 py-3 font-bold text-black transition hover:bg-orange-400 disabled:opacity-50"
+            >
+              {savingTopic ? "שומר..." : "הוסף לנושאים שלי"}
+            </button>
+          </div>
+          {topicError && <p role="alert" className="mt-3 text-sm text-red-400">{topicError}</p>}
+        </form>
+      )}
+
       {selectedCategory && (
         <p className="mt-5 text-sm text-orange-400">
           התחום נבחר. בשלב הבא ה־AI יציע לך סקילס מתאימים.
@@ -446,7 +521,7 @@ export default function SkillCategoryPicker() {
 
       {loading && (
         <div className="mt-8 rounded-2xl border border-orange-500/30 bg-orange-500/5 p-6">
-          <p className="font-bold text-orange-400">⚡ AI SCOUT</p>
+          <p className="font-bold text-orange-400">⚡ סייר ה־AI</p>
 
           <p className="mt-2 text-lg font-semibold">
             ממפה את המסלול הבא שלך...
@@ -473,7 +548,7 @@ export default function SkillCategoryPicker() {
         <div className="mt-10">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="font-bold text-orange-400">⚔️ QUEST BOARD</p>
+              <p className="font-bold text-orange-400">⚔️ לוח המשימות</p>
 
               <h2 className="mt-1 text-2xl font-bold">מסלולים מומלצים עבורך</h2>
             </div>
@@ -554,7 +629,7 @@ export default function SkillCategoryPicker() {
                       )}
 
                       <p className="mt-2 text-xs text-zinc-500">
-                        Level {skill.level}
+                        רמה {skill.level}
                       </p>
                     </div>
                   )}
@@ -564,7 +639,7 @@ export default function SkillCategoryPicker() {
                     onClick={() => setSelectedSkill(skill)}
                     className="mt-5 w-full rounded-xl bg-orange-500 px-4 py-3 font-bold text-black transition hover:bg-orange-400"
                   >
-                    ⚔️ בחר Quest
+                    ⚔️ בחר משימה
                   </button>
                 </article>
               );
@@ -590,7 +665,7 @@ export default function SkillCategoryPicker() {
         <div className="mt-10 rounded-3xl border border-orange-500/30 bg-zinc-900 p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="font-bold text-orange-400">⚔️ QUEST READY</p>
+              <p className="font-bold text-orange-400">⚔️ המשימה מוכנה</p>
 
               <h2 className="mt-2 text-3xl font-bold">{selectedSkill.name}</h2>
 
@@ -603,7 +678,7 @@ export default function SkillCategoryPicker() {
               <div className="rounded-xl bg-white/5 px-4 py-3 text-center">
                 <p className="text-xs text-zinc-500">הרמה שלך</p>
 
-                <p className="mt-1 font-bold">Level {selectedSkill.level}</p>
+                <p className="mt-1 font-bold">רמה {selectedSkill.level}</p>
               </div>
             )}
           </div>
@@ -636,7 +711,7 @@ export default function SkillCategoryPicker() {
               disabled={quizLoading}
               className="mt-6 w-full rounded-xl bg-orange-500 px-4 py-4 text-lg font-bold text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {quizLoading ? "⚡ יוצר את האתגר..." : "⚔️ התחל Quest"}
+              {quizLoading ? "⚡ יוצר את האתגר..." : "⚔️ התחל משימה"}
             </button>
           )}
 
@@ -753,7 +828,7 @@ export default function SkillCategoryPicker() {
                       {quizLoading
                         ? "⚡ מכין את האתגר הבא..."
                         : questionNumber === TOTAL_QUESTIONS
-                          ? "🏆 סיים Quest"
+                          ? "🏆 סיים משימה"
                           : "שאלה הבאה ←"}
                     </button>
                   </div>
@@ -766,7 +841,7 @@ export default function SkillCategoryPicker() {
             <div className="mt-6 rounded-2xl border border-orange-500/30 bg-orange-500/5 p-6 text-center">
               <p className="text-4xl">🏆</p>
 
-              <p className="mt-3 font-bold text-orange-400">QUEST COMPLETE</p>
+              <p className="mt-3 font-bold text-orange-400">המסע הושלם</p>
 
               <h3 className="mt-2 text-2xl font-bold">{selectedSkill.name}</h3>
 
@@ -799,7 +874,7 @@ export default function SkillCategoryPicker() {
             onClick={() => handleBackToQuestBoard()}
             className="mt-6 text-sm font-semibold text-zinc-500 transition hover:text-orange-400"
           >
-            ← בחר Quest אחר
+            ← בחר משימה אחרת
           </button>
         </div>
       )}
