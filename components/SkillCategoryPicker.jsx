@@ -1,9 +1,9 @@
+"use client";
+
 import QuestResults from "@/components/quest/QuestResults";
 import QuizQuestion from "@/components/quest/QuizQuestion";
 import SkillRecommendations from "@/components/quest/SkillRecommendations";
 import TopicSelector from "@/components/quest/TopicSelector";
-"use client";
-
 import { getSkillRecommendationsAction } from "@/actions/ai";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
