@@ -5,6 +5,7 @@ import SkillCategoryPicker from "@/components/SkillCategoryPicker";
 import connectDB from "@/lib/db";
 import { getSessionUserId } from "@/lib/session";
 import Skill from "@/models/Skill";
+import QuestAttempt from "@/models/QuestAttempt";
 import UserTopic from "@/models/UserTopic";
 
 export default async function PlayPage({ searchParams }) {
@@ -25,6 +26,8 @@ export default async function PlayPage({ searchParams }) {
   if (typeof skillId === "string" && mongoose.isValidObjectId(skillId)) {
     const skill = await Skill.findOne({ _id: skillId, userId }).lean();
     if (skill) {
+      const lastAttempt = await QuestAttempt.findOne({ userId, skillName: skill.name })
+        .sort({ startedAt: -1 }).select("difficulty").lean();
       const proficiency = skill.totalAnswers
         ? Math.round((skill.correctAnswers / skill.totalAnswers) * 100)
         : null;
@@ -33,7 +36,7 @@ export default async function PlayPage({ searchParams }) {
         displayName: skill.displayName || skill.name,
         category: skill.category,
         shortDescription: "תרגול נוסף לחיזוק הידע וההתקדמות שלך.",
-        difficulty: "beginner",
+        difficulty: lastAttempt?.difficulty || "beginner",
         isExisting: true,
         proficiency,
         level: Math.floor((skill.xp ?? 0) / 100) + 1,
