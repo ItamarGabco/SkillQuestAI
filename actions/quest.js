@@ -39,7 +39,7 @@ export async function startQuestAttemptAction({
 
   await connectDB();
 
-  await Skill.findOneAndUpdate(
+  const skill = await Skill.findOneAndUpdate(
     {
       userId,
       name: cleanSkillName,
@@ -76,6 +76,7 @@ export async function startQuestAttemptAction({
 
   return {
     attemptId: attempt._id.toString(),
+    skillId: skill._id.toString(),
   };
 }
 

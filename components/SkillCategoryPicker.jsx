@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
+import SkillCategoryGrid from "@/components/SkillCategoryGrid";
 import { getSkillRecommendationsAction } from "@/actions/ai";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { generateQuizBatchAction } from "@/actions/quiz";
 import {
@@ -10,49 +12,16 @@ import {
   completeQuestAttemptAction,
 } from "@/actions/quest";
 import MiniChat from "@/components/MiniChat";
+import QuestNavigation from "@/components/QuestNavigation";
+import { skillCategories as categories } from "@/lib/skillCategories";
 
 const TOTAL_QUESTIONS = 10;
 
-const categories = [
-  {
-    id: "programming",
-    name: "תכנות",
-    icon: "💻",
-    description: "פיתוח אתרים, אפליקציות ותוכנה",
-  },
-  {
-    id: "languages",
-    name: "שפות",
-    icon: "🌍",
-    description: "אנגלית, ספרדית, צרפתית ועוד",
-  },
-  {
-    id: "cooking",
-    name: "בישול",
-    icon: "🍳",
-    description: "טכניקות בישול, אפייה ומטבחים",
-  },
-  {
-    id: "sports",
-    name: "ספורט",
-    icon: "⚽",
-    description: "כושר, ענפי ספורט ויכולות גופניות",
-  },
-  {
-    id: "design",
-    name: "עיצוב",
-    icon: "🎨",
-    description: "UI, גרפיקה, עיצוב מוצר ועוד",
-  },
-  {
-    id: "finance",
-    name: "פיננסים",
-    icon: "📈",
-    description: "השקעות, כלכלה וניהול כספים",
-  },
-];
-
-export default function SkillCategoryPicker() {
+export default function SkillCategoryPicker({
+  initialSkill = null,
+  initialCategoryId = null,
+  recentSkills = [],
+}) {
   const [selectedCategory, setSelectedCategory] = useState(null);
 
   const [recommendations, setRecommendations] = useState([]);
@@ -61,9 +30,11 @@ export default function SkillCategoryPicker() {
 
   const [error, setError] = useState("");
 
-  const [showCategories, setShowCategories] = useState(true);
+  const [showCategories, setShowCategories] = useState(!initialSkill);
 
-  const [selectedSkill, setSelectedSkill] = useState(null);
+  const [selectedSkill, setSelectedSkill] = useState(initialSkill);
+
+  const [activeSkillId, setActiveSkillId] = useState(initialSkill?.id ?? null);
 
   const [currentQuestion, setCurrentQuestion] = useState(null);
 
@@ -88,30 +59,13 @@ export default function SkillCategoryPicker() {
   const [questAttemptId, setQuestAttemptId] = useState(null);
 
   const pendingSavePromisesRef = useRef([]);
+  const openedCategoryRef = useRef(null);
 
   // STATES END
 
   const router = useRouter();
 
-  function handleBackToQuestBoard() {
-    setSelectedSkill(null);
-    setCurrentQuestion(null);
-    setQuizQuestions([]);
-    setSelectedAnswer(null);
-    setHasAnswered(false);
-    setQuestionNumber(1);
-    setQuestResults([]);
-    setQuestFinished(false);
-    setQuizError("");
-    setQuizLoading(false);
-    setQuestAttemptId(null);
-
-    pendingSavePromisesRef.current = [];
-
-    prefetchBatchRef.current = null;
-  }
-
-  async function handleCategorySelect(category) {
+  const handleCategorySelect = useCallback(async (category) => {
     setSelectedCategory(category.id);
     setShowCategories(false);
     setLoading(true);
@@ -135,7 +89,23 @@ export default function SkillCategoryPicker() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const category = categories.find((item) => item.id === initialCategoryId);
+
+    if (!category) {
+      return;
+    }
+
+    if (openedCategoryRef.current === category.id) {
+      return;
+    }
+
+    openedCategoryRef.current = category.id;
+
+    void handleCategorySelect(category);
+  }, [initialCategoryId, handleCategorySelect]);
 
   async function handleStartQuest() {
     if (!selectedSkill) {
@@ -171,6 +141,7 @@ export default function SkillCategoryPicker() {
       }
 
       const categoryName =
+        selectedSkill.category ||
         categories.find((category) => category.id === selectedCategory)?.name ||
         "כללי";
 
@@ -188,6 +159,7 @@ export default function SkillCategoryPicker() {
       }
 
       setQuestAttemptId(attemptResult.attemptId);
+      setActiveSkillId(attemptResult.skillId);
 
       setQuizQuestions(result.questions);
 
@@ -376,29 +348,86 @@ export default function SkillCategoryPicker() {
     }
   }
 
-  function handleBackToTopics() {
-    setSelectedCategory(null);
-    setShowCategories(true);
-    setRecommendations([]);
-
+  function resetQuestState() {
     setSelectedSkill(null);
+    setActiveSkillId(null);
     setCurrentQuestion(null);
     setQuizQuestions([]);
-
     setSelectedAnswer(null);
     setHasAnswered(false);
-
     setQuestionNumber(1);
     setQuestResults([]);
     setQuestFinished(false);
-
     setQuizError("");
     setQuizLoading(false);
-
     setQuestAttemptId(null);
 
     prefetchBatchRef.current = null;
     pendingSavePromisesRef.current = [];
+  }
+
+  function handleBackToTopics() {
+    resetQuestState();
+    setSelectedCategory(null);
+    setShowCategories(true);
+    setRecommendations([]);
+    setError("");
+  }
+
+  function confirmLeaveQuest() {
+    if (!currentQuestion || questFinished) {
+      return true;
+    }
+
+    return window.confirm(
+      "השאלון עדיין לא הושלם. יציאה עכשיו לא תיחשב כשאלון שהושלם. לצאת?",
+    );
+  }
+
+  function handleChooseDifficulty() {
+    if (!activeSkillId || !confirmLeaveQuest()) {
+      return;
+    }
+
+    router.push(`/skills/${activeSkillId}`);
+  }
+
+  function handleChooseSkill() {
+    if (!confirmLeaveQuest()) {
+      return;
+    }
+
+    window.history.replaceState(null, "", "/play");
+
+    const category = categories.find(
+      (item) =>
+        item.id === selectedCategory || item.name === selectedSkill?.category,
+    );
+
+    const hasRecommendations = selectedCategory && recommendations.length > 0;
+
+    resetQuestState();
+
+    if (hasRecommendations) {
+      setShowCategories(false);
+      return;
+    }
+
+    if (category) {
+      void handleCategorySelect(category);
+      return;
+    }
+
+    handleBackToTopics();
+  }
+
+  function handleChooseCategory() {
+    if (!confirmLeaveQuest()) {
+      return;
+    }
+
+    window.history.replaceState(null, "", "/play");
+    handleBackToTopics();
   }
 
   return (
@@ -409,33 +438,50 @@ export default function SkillCategoryPicker() {
         <p className="mt-2 text-zinc-400">בחר תחום ונציע לך סקילס רלוונטיים.</p>
       </div>
 
-      {showCategories && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => {
-            const isSelected = selectedCategory === category.id;
+      {showCategories && !selectedSkill && recentSkills.length > 0 && (
+        <section className="mb-10">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h2 className="text-2xl font-bold">🔥 המשך ללמוד</h2>
 
-            return (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => handleCategorySelect(category)}
-                className={`rounded-2xl border p-5 text-right transition ${
-                  isSelected
-                    ? "border-orange-500 bg-orange-500/10"
-                    : "border-white/10 bg-zinc-900 hover:border-white/20"
-                }`}
+            <Link
+              href="/skills"
+              className="text-sm font-semibold text-orange-400 hover:text-orange-300"
+            >
+              כל הסקילס שלי ←
+            </Link>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {recentSkills.map((skill) => (
+              <Link
+                key={skill.id}
+                href={`/skills/${skill.id}`}
+                className="flex min-h-40 cursor-pointer flex-col rounded-2xl border border-white/10 bg-zinc-900 p-5 transition hover:border-orange-500/50 hover:bg-zinc-800"
               >
-                <div className="text-3xl">{category.icon}</div>
+                <p className="text-sm text-orange-400">{skill.category}</p>
 
-                <h3 className="mt-4 text-xl font-bold">{category.name}</h3>
+                <h3 className="mt-2 text-xl font-bold">{skill.name}</h3>
 
-                <p className="mt-2 text-sm text-zinc-400">
-                  {category.description}
-                </p>
-              </button>
-            );
-          })}
-        </div>
+                <div className="mt-auto flex items-center justify-between pt-5">
+                  <span className="text-sm text-zinc-400">
+                    ⚡ {skill.xp} XP
+                  </span>
+
+                  <span className="text-sm font-bold text-orange-400">
+                    בחר רמה והמשך ←
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {showCategories && (
+        <SkillCategoryGrid
+          onSelect={handleCategorySelect}
+          selectedId={selectedCategory}
+        />
       )}
 
       {selectedCategory && (
@@ -494,7 +540,7 @@ export default function SkillCategoryPicker() {
               return (
                 <article
                   key={skill.name}
-                  className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 p-5 transition hover:border-orange-500/40"
+                  className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 p-5 transition hover:border-orange-500/40 cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -559,13 +605,15 @@ export default function SkillCategoryPicker() {
                     </div>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSkill(skill)}
-                    className="mt-5 w-full rounded-xl bg-orange-500 px-4 py-3 font-bold text-black transition hover:bg-orange-400"
-                  >
-                    ⚔️ בחר Quest
-                  </button>
+                  <div className="mt-auto pt-5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSkill(skill)}
+                      className="w-full cursor-pointer rounded-xl bg-orange-500 px-4 py-3 font-bold text-black transition hover:bg-orange-400"
+                    >
+                      ⚔️ בחר Quest
+                    </button>
+                  </div>
                 </article>
               );
             })}
@@ -634,7 +682,7 @@ export default function SkillCategoryPicker() {
               type="button"
               onClick={handleStartQuest}
               disabled={quizLoading}
-              className="mt-6 w-full rounded-xl bg-orange-500 px-4 py-4 text-lg font-bold text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-6 w-full rounded-xl bg-orange-500 px-4 py-4 text-lg font-bold text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
             >
               {quizLoading ? "⚡ יוצר את האתגר..." : "⚔️ התחל Quest"}
             </button>
@@ -794,13 +842,13 @@ export default function SkillCategoryPicker() {
             <p className="mt-4 text-sm text-red-400">{quizError}</p>
           )}
 
-          <button
-            type="button"
-            onClick={() => handleBackToQuestBoard()}
-            className="mt-6 text-sm font-semibold text-zinc-500 transition hover:text-orange-400"
-          >
-            ← בחר Quest אחר
-          </button>
+          <QuestNavigation
+            onDifficulty={handleChooseDifficulty}
+            onSkill={handleChooseSkill}
+            onCategory={handleChooseCategory}
+            canChooseDifficulty={Boolean(activeSkillId)}
+            disabled={quizLoading}
+          />
         </div>
       )}
     </section>

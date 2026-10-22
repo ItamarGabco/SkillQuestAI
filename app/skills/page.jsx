@@ -1,62 +1,13 @@
 import { redirect } from "next/navigation";
-
-import SkillCategoryPicker from "@/components/SkillCategoryPicker";
+import Link from "next/link";
+import SkillCategoryGrid from "@/components/SkillCategoryGrid";
 import connectDB from "@/lib/db";
 import { getSessionUserId } from "@/lib/session";
 import Skill from "@/models/Skill";
 import LogoutButton from "@/components/LogoutButton";
-
-function calculateProficiency(skill) {
-  if (skill.totalAnswers === 0) {
-    return 0;
-  }
-
-  return Math.round((skill.correctAnswers / skill.totalAnswers) * 100);
-}
-
-function getLevel(xp) {
-  return Math.floor(xp / 100) + 1;
-}
-
-function getProficiencyColor(proficiency) {
-  if (proficiency === null) {
-    return "bg-zinc-600";
-  }
-
-  if (proficiency >= 75) {
-    return "bg-green-500";
-  }
-
-  if (proficiency >= 50) {
-    return "bg-yellow-500";
-  }
-
-  if (proficiency >= 25) {
-    return "bg-orange-500";
-  }
-
-  return "bg-red-500";
-}
-
-function getProficiencyLabel(proficiency) {
-  if (proficiency === null) {
-    return "טרם נבדק";
-  }
-
-  if (proficiency >= 75) {
-    return "חזק";
-  }
-
-  if (proficiency >= 50) {
-    return "בינוני";
-  }
-
-  if (proficiency >= 25) {
-    return "מתחיל";
-  }
-
-  return "דורש חיזוק";
-}
+import QuestAttempt from "@/models/QuestAttempt";
+import { getSkillProgress } from "@/lib/skillProgress";
+import MainNavigation from "@/components/MainNavigation";
 
 export default async function SkillsPage() {
   const userId = await getSessionUserId();
@@ -68,9 +19,16 @@ export default async function SkillsPage() {
   await connectDB();
 
   const skills = await Skill.find({ userId }).sort({ createdAt: -1 }).lean();
+  const attempts = await QuestAttempt.find({
+    userId,
+    status: "completed",
+  })
+    .select("skillName difficulty status correctAnswers totalAnswers")
+    .lean();
 
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
+      <MainNavigation />
       <div className="mb-6 flex justify-end">
         <LogoutButton />
       </div>
@@ -87,13 +45,17 @@ export default async function SkillsPage() {
           </p>
         </header>
 
-        <SkillCategoryPicker />
+        <Link
+          href="/play"
+          className="inline-flex cursor-pointer items-center rounded-xl bg-orange-500 px-5 py-3 font-bold text-black transition hover:bg-orange-400"
+        >
+          ⚔️ שחק ולמד סקיל חדש
+        </Link>
 
         <section className="mt-10">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold">המסע שלך</h2>
-
+              <h2 className="text-2xl font-bold">הסקילס שצברתי</h2>
               <p className="text-sm text-zinc-400">
                 {skills.length} סקילס ברשימה
               </p>
@@ -101,25 +63,56 @@ export default async function SkillsPage() {
           </div>
 
           {skills.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/15 p-10 text-center">
-              <p className="text-lg font-semibold">המסע עדיין ריק</p>
+            <div>
+              <div className="mb-8 rounded-2xl border border-dashed border-orange-500/30 bg-orange-500/5 p-8 text-center">
+                <p className="text-2xl font-bold">🚀 המסע שלך מתחיל כאן!</p>
 
-              <p className="mt-2 text-zinc-400">
-                הוסף את הסקיל הראשון שלך למעלה.
-              </p>
+                <p className="mt-3 text-zinc-400">
+                  עדיין אין לך סקילס. בחר תחום שמעניין אותך והתחל לצבור ידע
+                  וניסיון.
+                </p>
+              </div>
+
+              <h3 className="mb-5 text-xl font-bold">במה תרצה להתפתח?</h3>
+
+              <SkillCategoryGrid />
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {skills.map((skill) => {
-                const proficiency = calculateProficiency(skill);
-                const proficiencyColor = getProficiencyColor(proficiency);
-                const proficiencyLabel = getProficiencyLabel(proficiency);
-                const level = getLevel(skill.xp);
+                const skillAttempts = attempts.filter(
+                  (attempt) => attempt.skillName === skill.name,
+                );
+
+                const progress = getSkillProgress(skill, skillAttempts);
+                const level = progress.level;
+
+                const bestScores = Object.values(progress.difficulties)
+                  .map((difficulty) => difficulty.best)
+                  .filter((score) => score !== null);
+
+                const bestScore =
+                  bestScores.length > 0 ? Math.max(...bestScores) : null;
+
+                let nextDifficulty = null;
+
+                if (!progress.difficulties.intermediate.unlocked) {
+                  nextDifficulty = {
+                    name: "בינוניים",
+                    current: progress.difficulties.beginner,
+                  };
+                } else if (!progress.difficulties.advanced.unlocked) {
+                  nextDifficulty = {
+                    name: "מתקדמים",
+                    current: progress.difficulties.intermediate,
+                  };
+                }
 
                 return (
-                  <article
+                  <Link
                     key={skill._id.toString()}
-                    className="rounded-2xl border border-white/10 bg-zinc-900 p-5"
+                    href={`/skills/${skill._id.toString()}`}
+                    className="block rounded-2xl border border-white/10 bg-zinc-900 p-5 transition hover:border-orange-500/50 hover:bg-zinc-800"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -137,39 +130,62 @@ export default async function SkillsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-6">
-                      <div className="mb-2 flex justify-between text-sm">
-                        <span className="text-zinc-400">שליטה</span>
-
-                        <span className="font-bold">
-                          {proficiency}% · {getProficiencyLabel(proficiency)}
-                        </span>
+                    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-xl bg-zinc-800 p-3">
+                        <p className="text-sm text-zinc-400">XP</p>
+                        <p className="mt-1 text-xl font-bold">{progress.xp}</p>
                       </div>
 
-                      <div className="h-3 overflow-hidden rounded-full bg-white/10">
-                        <div
-                          className={`h-full rounded-full ${proficiencyColor}`}
-                          style={{
-                            width: `${proficiency}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-5 flex gap-6 text-sm">
-                      <div>
-                        <p className="text-zinc-500">XP</p>
-                        <p className="font-bold">{skill.xp}</p>
+                      <div className="rounded-xl bg-zinc-800 p-3">
+                        <p className="text-sm text-zinc-400">תשובות נכונות</p>
+                        <p className="mt-1 text-xl font-bold">
+                          {progress.correctAnswers}
+                        </p>
                       </div>
 
-                      <div>
-                        <p className="text-zinc-500">תשובות נכונות</p>
-                        <p className="font-bold">
-                          {skill.correctAnswers}/{skill.totalAnswers}
+                      <div className="rounded-xl bg-zinc-800 p-3">
+                        <p className="text-sm text-zinc-400">תוצאת שיא</p>
+                        <p className="mt-1 text-xl font-bold">
+                          {bestScore === null
+                            ? "אין עדיין שיא"
+                            : `${bestScore}/10`}
                         </p>
                       </div>
                     </div>
-                  </article>
+                    {nextDifficulty ? (
+                      <div className="mt-4 rounded-xl border border-white/10 p-4">
+                        <div className="flex justify-between gap-2 text-sm">
+                          <span className="font-semibold">
+                            לפתיחת רמת {nextDifficulty.name}
+                          </span>
+
+                          <span className="text-zinc-400">
+                            {Math.min(nextDifficulty.current.completed, 5)}/5
+                            שאלונים
+                          </span>
+                        </div>
+
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                          <div
+                            className="h-full rounded-full bg-orange-500"
+                            style={{
+                              width: `${Math.min(nextDifficulty.current.completed, 5) * 20}%`,
+                            }}
+                          />
+                        </div>
+
+                        <p className="mt-2 text-xs text-zinc-400">
+                          {nextDifficulty.current.best === 10
+                            ? "✓ הושג מבחן מושלם של 10/10"
+                            : "נדרש גם מבחן אחד עם תוצאה של 10/10"}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-4 text-sm font-semibold text-green-400">
+                        🏆 פתחת את כל רמות הקושי!
+                      </p>
+                    )}
+                  </Link>
                 );
               })}
             </div>

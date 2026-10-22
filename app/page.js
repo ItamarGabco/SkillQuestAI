@@ -1,69 +1,118 @@
-import Image from "next/image";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+import MainNavigation from "@/components/MainNavigation";
+import connectDB from "@/lib/db";
+import { getSessionUserId } from "@/lib/session";
+import Skill from "@/models/Skill";
+
+export default async function HomePage() {
+  const userId = await getSessionUserId();
+
+  if (!userId) {
+    redirect("/login");
+  }
+
+  await connectDB();
+
+  const [totalSkills, recentSkill] = await Promise.all([
+    Skill.countDocuments({ userId }),
+    Skill.findOne({ userId })
+      .sort({ lastPracticedAt: -1, createdAt: -1 })
+      .select("name category xp")
+      .lean(),
+  ]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.js
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-zinc-950 px-4 py-6 text-white sm:px-6">
+      <MainNavigation />
+
+      <div className="mx-auto max-w-5xl">
+        <header className="rounded-3xl border border-orange-500/20 bg-gradient-to-bl from-orange-500/20 via-zinc-900 to-zinc-950 p-7 sm:p-10">
+          <p className="font-bold tracking-wider text-orange-400">
+            SKILLQUEST AI
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+          <h1 className="mt-4 text-3xl font-bold sm:text-5xl">
+            המסע שלך מתחיל כאן ⚡
+          </h1>
+
+          <p className="mt-4 max-w-xl text-lg text-zinc-300">
+            גלה יכולות חדשות, התמודד עם אתגרים וצבור ניסיון בכל פעם שאתה משחק.
+          </p>
+
+          <Link
+            href="/play"
+            className="mt-7 inline-flex min-h-14 cursor-pointer items-center justify-center rounded-xl bg-orange-500 px-7 py-4 text-lg font-bold text-black transition hover:bg-orange-400"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            ⚔️ התחל לשחק
+          </Link>
+        </header>
+
+        <section className="mt-8 grid gap-4 sm:grid-cols-2">
+          <Link
+            href="/play"
+            className="flex min-h-44 cursor-pointer flex-col justify-between rounded-2xl border border-white/10 bg-zinc-900 p-6 transition hover:border-orange-500/50 hover:bg-zinc-800"
           >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            <span className="text-4xl">🎮</span>
+
+            <div>
+              <h2 className="text-2xl font-bold">שחק ולמד</h2>
+              <p className="mt-2 text-zinc-400">בחר תחום וצא לאתגר חדש</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/skills"
+            className="flex min-h-44 cursor-pointer flex-col justify-between rounded-2xl border border-white/10 bg-zinc-900 p-6 transition hover:border-orange-500/50 hover:bg-zinc-800"
+          >
+            <span className="text-4xl">🏆</span>
+
+            <div>
+              <h2 className="text-2xl font-bold">הסקילס שלי</h2>
+              <p className="mt-2 text-zinc-400">{totalSkills} סקילס במסע שלך</p>
+            </div>
+          </Link>
+        </section>
+
+        <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900 p-6">
+          <h2 className="text-2xl font-bold">🔥 ממשיכים מהנקודה האחרונה</h2>
+
+          {recentSkill ? (
+            <Link
+              href={`/skills/${recentSkill._id.toString()}`}
+              className="mt-5 flex min-h-24 cursor-pointer items-center justify-between gap-4 rounded-xl bg-zinc-800 p-5 transition hover:bg-zinc-700"
+            >
+              <div>
+                <p className="text-sm text-orange-400">
+                  {recentSkill.category}
+                </p>
+
+                <h3 className="mt-2 text-xl font-bold">{recentSkill.name}</h3>
+
+                <p className="mt-1 text-sm text-zinc-400">
+                  ⚡ {recentSkill.xp ?? 0} XP
+                </p>
+              </div>
+
+              <span className="font-bold text-orange-400">המשך ←</span>
+            </Link>
+          ) : (
+            <div className="mt-5">
+              <p className="text-zinc-400">
+                עדיין לא התחלת ללמוד סקיל. האתגר הראשון מחכה לך!
+              </p>
+
+              <Link
+                href="/play"
+                className="mt-4 inline-block font-bold text-orange-400"
+              >
+                בחר את התחום הראשון שלך ←
+              </Link>
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
   );
 }
