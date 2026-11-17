@@ -7,6 +7,7 @@ const navigationItems = [
   { href: "/", label: "בית", icon: "🏠" },
   { href: "/play", label: "שחק", icon: "⚔️" },
   { href: "/skills", label: "הסקילס שלי", icon: "🏆" },
+  { href: "/assistant", label: "עוזר AI", icon: "🤖" },
 ];
 
 export default function MainNavigation() {
@@ -15,9 +16,9 @@ export default function MainNavigation() {
   return (
     <nav
       aria-label="ניווט ראשי"
-      className="sticky top-0 z-40 mx-auto mb-8 max-w-5xl rounded-2xl border border-white/10 bg-zinc-950/95 p-2 shadow-xl backdrop-blur"
+      className="w-full rounded-2xl border border-white/10 bg-zinc-950/95 p-2 shadow-xl backdrop-blur"
     >
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         {navigationItems.map((item) => {
           const isActive =
             item.href === "/"

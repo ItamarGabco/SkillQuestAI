@@ -80,7 +80,7 @@ export default function MiniChat({ skillName, concept = "" }) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="mt-4 w-full rounded-xl border border-orange-500/30 bg-orange-500/5 px-4 py-3 font-semibold text-orange-400 transition hover:bg-orange-500/10"
+        className="mt-4 w-full rounded-xl border cursor-pointer border-orange-500/30 bg-orange-500/5 px-4 py-3 font-semibold text-orange-400 transition hover:bg-orange-500/10"
       >
         💬 רוצה להבין יותר?
       </button>
@@ -99,7 +99,7 @@ export default function MiniChat({ skillName, concept = "" }) {
         <button
           type="button"
           onClick={() => setIsOpen(false)}
-          className="text-sm text-zinc-500 hover:text-white"
+          className="text-sm cursor-pointer text-zinc-500 hover:text-white"
         >
           סגור
         </button>

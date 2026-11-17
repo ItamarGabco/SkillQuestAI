@@ -5,7 +5,7 @@ export default function LogoutButton() {
     <form action={logoutAction}>
       <button
         type="submit"
-        className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-orange-500/40 hover:text-orange-400"
+        className="min-h-14 cursor-pointer rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-zinc-300 transition hover:border-orange-500/40 hover:text-orange-400"
       >
         התנתקות
       </button>

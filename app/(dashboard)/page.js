@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import MainNavigation from "@/components/MainNavigation";
 import connectDB from "@/lib/db";
 import { getSessionUserId } from "@/lib/session";
 import Skill from "@/models/Skill";
@@ -24,9 +23,7 @@ export default async function HomePage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-4 py-6 text-white sm:px-6">
-      <MainNavigation />
-
+    <>
       <div className="mx-auto max-w-5xl">
         <header className="rounded-3xl border border-orange-500/20 bg-gradient-to-bl from-orange-500/20 via-zinc-900 to-zinc-950 p-7 sm:p-10">
           <p className="font-bold tracking-wider text-orange-400">
@@ -113,6 +110,6 @@ export default async function HomePage() {
           )}
         </section>
       </div>
-    </main>
+    </>
   );
 }

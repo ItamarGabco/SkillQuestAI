@@ -7,7 +7,6 @@ import { getSessionUserId } from "@/lib/session";
 import { getSkillProgress } from "@/lib/skillProgress";
 import Skill from "@/models/Skill";
 import QuestAttempt from "@/models/QuestAttempt";
-import MainNavigation from "@/components/MainNavigation";
 
 const difficulties = [
   { key: "beginner", name: "מתחילים" },
@@ -50,8 +49,7 @@ export default async function SkillDetailsPage({ params }) {
   const progress = getSkillProgress(skill, attempts);
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
-      <MainNavigation />
+    <>
       <div className="mx-auto max-w-4xl">
         <Link href="/skills" className="text-orange-400">
           → חזרה לסקילס
@@ -118,6 +116,6 @@ export default async function SkillDetailsPage({ params }) {
           })}
         </section>
       </div>
-    </main>
+    </>
   );
 }

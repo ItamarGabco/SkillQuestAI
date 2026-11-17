@@ -8,7 +8,6 @@ import { getSessionUserId } from "@/lib/session";
 import { getSkillProgress } from "@/lib/skillProgress";
 import Skill from "@/models/Skill";
 import QuestAttempt from "@/models/QuestAttempt";
-import MainNavigation from "@/components/MainNavigation";
 
 export default async function PlayPage({ searchParams }) {
   const userId = await getSessionUserId();
@@ -81,7 +80,6 @@ export default async function PlayPage({ searchParams }) {
 
   return (
     <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
-      <MainNavigation />
       <div className="mx-auto max-w-5xl">
         <Link href="/skills" className="text-orange-400">
           → הסקילס שלי

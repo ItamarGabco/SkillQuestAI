@@ -7,6 +7,7 @@ import { getSessionUserId } from "@/lib/session";
 import QuestAttempt from "@/models/QuestAttempt";
 import Skill from "@/models/Skill";
 import { revalidatePath } from "next/cache";
+import { getSkillProgress } from "@/lib/skillProgress";
 
 const ALLOWED_DIFFICULTIES = ["beginner", "intermediate", "advanced"];
 
@@ -38,6 +39,35 @@ export async function startQuestAttemptAction({
     : "beginner";
 
   await connectDB();
+
+  const existingSkill = await Skill.findOne({
+    userId,
+    name: cleanSkillName,
+  }).lean();
+
+  if (cleanDifficulty !== "beginner") {
+    if (!existingSkill) {
+      return {
+        error: "יש להתחיל ברמת מתחילים",
+      };
+    }
+
+    const attempts = await QuestAttempt.find({
+      userId,
+      skillName: cleanSkillName,
+      status: "completed",
+    })
+      .select("difficulty status correctAnswers totalAnswers")
+      .lean();
+
+    const progress = getSkillProgress(existingSkill, attempts);
+
+    if (!progress.difficulties[cleanDifficulty].unlocked) {
+      return {
+        error: "רמת הקושי עדיין נעולה. השלם קודם את האתגרים הנדרשים.",
+      };
+    }
+  }
 
   const skill = await Skill.findOneAndUpdate(
     {
@@ -236,7 +266,7 @@ export async function completeQuestAttemptAction(attemptId) {
     {
       $inc: {
         xp: completionBonus,
-        completeQuests: 1,
+        completedQuests: 1,
       },
 
       $set: {
@@ -244,7 +274,7 @@ export async function completeQuestAttemptAction(attemptId) {
       },
     },
   );
-  revalidatePath("skills");
+  revalidatePath("/skills");
 
   return {
     success: true,

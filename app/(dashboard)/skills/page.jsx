@@ -4,10 +4,8 @@ import SkillCategoryGrid from "@/components/SkillCategoryGrid";
 import connectDB from "@/lib/db";
 import { getSessionUserId } from "@/lib/session";
 import Skill from "@/models/Skill";
-import LogoutButton from "@/components/LogoutButton";
 import QuestAttempt from "@/models/QuestAttempt";
 import { getSkillProgress } from "@/lib/skillProgress";
-import MainNavigation from "@/components/MainNavigation";
 
 export default async function SkillsPage() {
   const userId = await getSessionUserId();
@@ -27,12 +25,7 @@ export default async function SkillsPage() {
     .lean();
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
-      <MainNavigation />
-      <div className="mb-6 flex justify-end">
-        <LogoutButton />
-      </div>
-
+    <>
       <div className="mx-auto max-w-5xl">
         <header className="mb-10">
           <p className="font-semibold text-orange-500">SKILLQUEST AI</p>
@@ -51,6 +44,23 @@ export default async function SkillsPage() {
         >
           ⚔️ שחק ולמד סקיל חדש
         </Link>
+
+        <div className="mt-4">
+          <Link
+            href="/resume"
+            className="inline-flex min-h-12 items-center rounded-xl border border-orange-500/40 px-5 py-3 font-bold text-orange-400 transition hover:bg-orange-500/10"
+          >
+            📄 צור מקטע סקילס לקורות החיים
+          </Link>
+        </div>
+        <div className="mt-3">
+          <Link
+            href="/skills/manage"
+            className="inline-flex min-h-12 items-center rounded-xl border border-white/15 px-5 py-3 font-bold text-zinc-200 hover:bg-zinc-800"
+          >
+            ⚙️ ניהול מיומנויות
+          </Link>
+        </div>
 
         <section className="mt-10">
           <div className="mb-5 flex items-end justify-between gap-4">
@@ -192,6 +202,6 @@ export default async function SkillsPage() {
           )}
         </section>
       </div>
-    </main>
+    </>
   );
 }
