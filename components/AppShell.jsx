@@ -1,7 +1,8 @@
 import MainNavigation from "@/components/MainNavigation";
 import LogoutButton from "@/components/LogoutButton";
+import Link from "next/link";
 
-export default function AppShell({ children }) {
+export default function AppShell({ children, isAdmin = false }) {
   return (
     <main className="min-h-screen bg-zinc-950 px-4 py-6 text-white sm:px-6">
       <div className="mx-auto max-w-5xl">
@@ -10,7 +11,16 @@ export default function AppShell({ children }) {
             <MainNavigation />
           </div>
 
-          <div className="self-end sm:self-auto">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="rounded-xl border border-orange-500/40 px-4 py-3 text-sm font-bold text-orange-400 hover:bg-orange-500/10"
+              >
+                ניהול מערכת
+              </Link>
+            )}
+
             <LogoutButton />
           </div>
         </header>

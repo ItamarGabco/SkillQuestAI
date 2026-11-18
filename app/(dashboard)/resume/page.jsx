@@ -7,6 +7,7 @@ import Skill from "@/models/Skill";
 import QuestAttempt from "@/models/QuestAttempt";
 import ResumeSkillExporter from "@/components/ResumeSkillExporter";
 import { getResumeKnowledgeLevel } from "@/lib/resumeExport";
+import { ResumeSelectionProvider } from "@/components/ResumeSelectionContext";
 
 export default async function ResumePage() {
   const userId = await getSessionUserId();
@@ -74,7 +75,9 @@ export default async function ResumePage() {
           </Link>
         </div>
       ) : (
-        <ResumeSkillExporter skills={resumeSkills} />
+        <ResumeSelectionProvider skills={resumeSkills}>
+          <ResumeSkillExporter skills={resumeSkills} />
+        </ResumeSelectionProvider>
       )}
     </>
   );

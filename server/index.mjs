@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 
 import skillsRouter from "./skills.mjs";
 
+import adminRouter from "./admin.mjs";
+
 const app = express();
 const PORT = Number(process.env.PORT || 4001);
 
@@ -17,6 +19,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/api/skills", skillsRouter);
+app.use("/api/admin", adminRouter);
 
 app.use((req, res) => {
   res.status(404).json({

@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { createResumeDraftAction } from "@/actions/resume";
+import { useResumeSelection } from "@/components/ResumeSelectionContext";
 
-export default function ResumeAiDraft({ selectedSkillIds }) {
+export default function ResumeAiDraft() {
+  const { selectedIds } = useResumeSelection();
   const [targetRole, setTargetRole] = useState("");
   const [summary, setSummary] = useState("");
   const [bullets, setBullets] = useState("");
@@ -12,7 +14,7 @@ export default function ResumeAiDraft({ selectedSkillIds }) {
   const [error, setError] = useState("");
 
   async function handleGenerate() {
-    if (loading || selectedSkillIds.length === 0) return;
+    if (loading || selectedIds.length === 0) return;
 
     setLoading(true);
     setError("");
@@ -22,7 +24,7 @@ export default function ResumeAiDraft({ selectedSkillIds }) {
 
     try {
       const result = await createResumeDraftAction({
-        skillIds: selectedSkillIds,
+        skillIds: selectedIds,
         targetRole,
       });
 
@@ -98,7 +100,7 @@ export default function ResumeAiDraft({ selectedSkillIds }) {
       <button
         type="button"
         onClick={handleGenerate}
-        disabled={loading || selectedSkillIds.length === 0}
+        disabled={loading || selectedIds.length === 0}
         className="mt-5 min-h-14 w-full cursor-pointer rounded-xl bg-orange-500 px-5 py-3 font-bold text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {loading ? "✨ מנסח את קורות החיים..." : "✨ צור ניסוח מקצועי"}

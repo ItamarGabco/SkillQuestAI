@@ -7,13 +7,11 @@ import {
   getResumeAchievement,
 } from "@/lib/resumeExport";
 import ResumeAiDraft from "@/components/ResumeAiDraft";
+import { useResumeSelection } from "@/components/ResumeSelectionContext";
 
 export default function ResumeSkillExporter({ skills }) {
-  const [selectedIds, setSelectedIds] = useState(() =>
-    skills
-      .filter((skill) => skill.knowledgeLevel !== null)
-      .map((skill) => skill.id),
-  );
+  const { selectedIds, toggleSkill, selectAll, clearSelection } =
+    useResumeSelection();
 
   const [format, setFormat] = useState("compact");
   const [message, setMessage] = useState("");
@@ -24,16 +22,6 @@ export default function ResumeSkillExporter({ skills }) {
 
   const groups = groupResumeSkills(selectedSkills);
   const exportContent = buildResumeExport(groups, format);
-
-  function toggleSkill(id) {
-    setSelectedIds((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
-    );
-
-    setMessage("");
-  }
 
   async function handleCopy() {
     if (selectedSkills.length === 0) return;
@@ -81,7 +69,7 @@ export default function ResumeSkillExporter({ skills }) {
             <button
               type="button"
               onClick={() => {
-                setSelectedIds(skills.map((skill) => skill.id));
+                selectAll();
                 setMessage("");
               }}
               className="cursor-pointer rounded-lg bg-zinc-800 px-4 py-2 text-sm hover:bg-zinc-700"
@@ -92,7 +80,7 @@ export default function ResumeSkillExporter({ skills }) {
             <button
               type="button"
               onClick={() => {
-                setSelectedIds([]);
+                clearSelection();
                 setMessage("");
               }}
               className="cursor-pointer rounded-lg bg-zinc-800 px-4 py-2 text-sm hover:bg-zinc-700"
@@ -110,7 +98,10 @@ export default function ResumeSkillExporter({ skills }) {
                 <input
                   type="checkbox"
                   checked={selectedIds.includes(skill.id)}
-                  onChange={() => toggleSkill(skill.id)}
+                  onChange={() => {
+                    toggleSkill(skill.id);
+                    setMessage("");
+                  }}
                   className="h-5 w-5 accent-orange-500"
                 />
 
@@ -211,14 +202,8 @@ export default function ResumeSkillExporter({ skills }) {
           </p>
         </section>
       </div>
-      <div
-        className="
-      mt-8"
-      >
-        <ResumeAiDraft
-          key={[...selectedIds].sort().join(",")}
-          selectedSkillIds={selectedIds}
-        />
+      <div className="mt-8">
+        <ResumeAiDraft key={[...selectedIds].sort().join(",")} />
       </div>
     </>
   );
